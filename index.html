@@ -16,10 +16,11 @@
       scroll-behavior: smooth;
     }
 
+    /* 改为宽屏布局 */
     .container {
-      max-width: 1000px;
+      max-width: 1280px; /* <--- 从 1000px 增加到 1280px */
       margin: 0 auto;
-      padding: 20px;
+      padding: 20px 40px; /* 增加左右内边距 */
     }
 
     header, section {
@@ -123,6 +124,7 @@
       clip-path: inset(0 50% 0 0);
     }
 
+    /* 滑动条主体为黑色，与白色背景形成对比 */
     .slider-bar {
       position: absolute;
       top: 0;
@@ -135,6 +137,7 @@
       pointer-events: none;
     }
 
+    /* 恢复您喜欢的高对比度手柄样式，并适配白色背景 */
     .slider-handle {
       position: absolute;
       left: 50%;
@@ -143,8 +146,9 @@
       width: 40px;
       height: 40px;
       border-radius: 50%;
-      border: 2px solid #000;
-      background: rgba(255, 255, 255, 0.7);
+      border: 2px solid #000; /* 黑色边框，保证可见性 */
+      background: #fff; /* 白色填充 */
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3); /* 添加阴影使其“浮动”在背景之上 */
       cursor: ew-resize;
       z-index: 11;
       display: flex;
@@ -152,6 +156,7 @@
       justify-content: center;
     }
     
+    /* 箭头用黑色，在白色手柄上才可见 */
     .slider-handle::before, .slider-handle::after {
       content: '';
       position: absolute;
@@ -230,7 +235,6 @@
       
       <div class="slider-container" id="slider2" style="margin-top: 20px;">
         <div class="image-wrapper" style="background-color: #000;">
-          <!-- 底层不再是输入图像，而是纯黑背景 -->
           <img src="https://raw.githubusercontent.com/mingcv/DIRS-Assets/main/images/DSC05764/R_enh.png" class="result-image" alt="Reflection Layer">
         </div>
         <div class="slider-bar"></div>
@@ -293,12 +297,10 @@
       let dragging = false;
 
       function update(x) {
-        // 使用第一个容器作为参考来计算百分比
         const rect = containers[0].getBoundingClientRect();
         const position = Math.max(0, Math.min(x - rect.left, rect.width));
         const pct = (position / rect.width) * 100;
 
-        // 更新组内所有的滑块、手柄和图像
         for (let i = 0; i < containers.length; i++) {
           bars[i].style.left = `${pct}%`;
           handles[i].style.left = `${pct}%`;
@@ -323,24 +325,19 @@
         update(clientX);
       };
 
-      // 为组内所有滑块容器和手柄都添加事件监听
       containers.forEach(container => {
         container.addEventListener('mousedown', startDrag);
         container.addEventListener('touchstart', startDrag, { passive: false });
       });
 
-      // 拖动事件在整个文档上监听，体验更佳
       document.addEventListener('mousemove', onDrag);
       document.addEventListener('mouseup', stopDrag);
       document.addEventListener('touchmove', onDrag, { passive: false });
       document.addEventListener('touchend', stopDrag);
     }
 
-    // 当文档加载完毕后，初始化所有的滑块组
     document.addEventListener('DOMContentLoaded', () => {
-      // 示例1的两个滑块作为一个同步组
       initSyncedSliders(['#slider1', '#slider2']);
-      // 示例2的两个滑块作为另一个同步组
       initSyncedSliders(['#slider3', '#slider4']);
     });
   </script>
