@@ -1,107 +1,366 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <title>Reflection Separation Viewer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DIRS: Single Image Reflection Separation Demo</title>
   <style>
-    html, body{margin:0;padding:0;background:#000;font-family:sans-serif;user-select:none;}
-
-    .container{max-width:1000px;margin:0 auto;position:relative;}
-    .slider-container{position:relative;width:100%;}
-
-    /* ──────────── 两层图像 ──────────── */
-    .image-wrapper{display:flex;flex-direction:column;}
-    .top,.bottom{position:relative;height:300px;overflow:hidden;}
-    .top img,.bottom img{position:absolute;width:100%;height:100%;object-fit:cover;}
-
-    .top .transmission,
-    .bottom .reflection{clip-path:inset(0 50% 0 0);}   /* 50 % 初始裁切 */
-
-    /* ──────────── 垂直白线（2 px） ──────────── */
-    .slider-bar{
-      position:absolute;top:0;bottom:0;width:2px;
-      background:#fff;left:50%;transform:translateX(-1px); /* 中心对齐 */
-      z-index:10;
+    /* ── 全局样式 & 页面布局 ── */
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      user-select: none;
+      scroll-behavior: smooth;
     }
 
-    /* ──────────── 圆形拖动手柄 ──────────── */
-    .slider-handle{
-      position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-      width:34px;height:34px;border-radius:50%;
-      border:2px solid #fff;background:rgba(0,0,0,0.4);
-      cursor:ew-resize;z-index:11;display:flex;align-items:center;justify-content:center;
-    }
-    /* 手柄里的黑色竖线 */
-    .slider-handle::after{
-      content:'';width:2px;height:60%;background:#000;
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 20px;
     }
 
-    /* ── 下方虚线分隔 ── */
-    .bottom{border-top:1px dashed #fff;background:#000;}
+    header, section {
+      text-align: center;
+      margin-bottom: 50px;
+    }
+
+    h1 {
+      font-size: 2.5em;
+      color: #fff;
+      margin-bottom: 10px;
+    }
+
+    h2 {
+      font-size: 1.8em;
+      color: #fff;
+      border-bottom: 2px solid #444;
+      padding-bottom: 10px;
+      margin-top: 60px;
+      text-align: left;
+    }
+    
+    h3 {
+      font-size: 1.2em;
+      color: #ccc;
+      margin-top: 40px;
+      margin-bottom: 20px;
+      text-align: left;
+    }
+
+    .authors {
+      font-size: 1.1em;
+      margin-bottom: 20px;
+    }
+
+    .authors a {
+      color: #4da6ff;
+      text-decoration: none;
+    }
+    .authors a:hover {
+      text-decoration: underline;
+    }
+    
+    .links a {
+      color: #fff;
+      background-color: #007bff;
+      padding: 8px 15px;
+      border-radius: 5px;
+      text-decoration: none;
+      margin: 0 10px;
+      font-weight: bold;
+      transition: background-color 0.2s;
+    }
+    .links a:hover {
+      background-color: #0056b3;
+    }
+
+    .abstract {
+      text-align: left;
+      line-height: 1.6;
+      color: #bbb;
+    }
+
+    .bibtex {
+      background: #2a2a2a;
+      border: 1px solid #444;
+      padding: 20px;
+      text-align: left;
+      white-space: pre-wrap; /* 保持格式 */
+      word-wrap: break-word; /* 自动换行 */
+      font-family: "Courier New", Courier, monospace;
+      border-radius: 5px;
+    }
+
+    /* ── 滑块对比组件 (基于你的原始代码修改) ── */
+    .slider-container {
+      position: relative;
+      width: 100%;
+      border: 1px solid #555;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .image-wrapper {
+      position: relative;
+      width: 100%;
+      /* 保持图像的宽高比，例如 3:2 */
+      padding-top: 66.66%; 
+    }
+
+    .image-wrapper img {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .result-image {
+      /* 初始时，右半边被裁剪掉，只显示左半边 */
+      clip-path: inset(0 50% 0 0);
+    }
+
+    .slider-bar {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: #fff;
+      left: 50%;
+      transform: translateX(-1px);
+      z-index: 10;
+      pointer-events: none; /* 防止遮挡鼠标事件 */
+    }
+
+    .slider-handle {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      background: rgba(0, 0, 0, 0.5);
+      cursor: ew-resize;
+      z-index: 11;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    /* 手柄中间的左右箭头图标 */
+    .slider-handle::before, .slider-handle::after {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 0;
+      border-style: solid;
+    }
+    .slider-handle::before {
+      border-width: 6px 8px 6px 0;
+      border-color: transparent white transparent transparent;
+      left: 6px;
+    }
+    .slider-handle::after {
+      border-width: 6px 0 6px 8px;
+      border-color: transparent transparent transparent white;
+      right: 6px;
+    }
+
+    /* 图像标签 */
+    .image-label {
+      position: absolute;
+      top: 10px;
+      padding: 5px 10px;
+      background: rgba(0, 0, 0, 0.7);
+      color: #fff;
+      font-size: 0.9em;
+      font-weight: bold;
+      border-radius: 3px;
+      z-index: 5;
+    }
+    .label-left {
+      left: 10px;
+    }
+    .label-right {
+      right: 10px;
+    }
+    
   </style>
 </head>
 <body>
+
   <div class="container">
-    <div class="slider-container" id="sliderContainer">
-      <div class="image-wrapper">
-        <div class="top">
-          <img src="https://raw.githubusercontent.com/mingcv/DIRS-Assets/main/images/DSC05764/I.png"  alt="blended">
-          <img src="https://raw.githubusercontent.com/mingcv/DIRS-Assets/main/images/DSC05764/T.png"  class="transmission" alt="transmission">
+    <header>
+      <h1>DIRS: Single Image Reflection Separation via Deep Feature Interaction</h1>
+      <p class="authors">
+        <!-- 请替换为你的真实姓名和链接 -->
+        <a href="https://github.com/mingcv" target="_blank">Mingcv</a>, Author Two, Author Three
+      </p>
+      <p class="links">
+        <!-- 请替换为你的真实链接 -->
+        <a href="#" target="_blank">Paper</a>
+        <a href="https://github.com/mingcv/DIRS-Assets" target="_blank">Code</a>
+      </p>
+    </header>
+
+    <section id="abstract">
+      <h2>Abstract</h2>
+      <p class="abstract">
+        <!-- 请替换为你的论文摘要 -->
+        Single image reflection separation remains a challenging ill-posed problem. Existing methods often struggle with complex scenes where the reflection and transmission layers are intricately intertwined. In this paper, we propose DIRS, a novel approach that leverages Deep Feature Interaction to effectively distinguish and separate the two layers. Our method introduces a cross-layer attention mechanism that allows the network to explicitly model the relationships between reflection and transmission features, leading to a more accurate separation. Extensive experiments on benchmark datasets demonstrate that DIRS significantly outperforms state-of-the-art methods, particularly in scenarios with strong reflections and detailed backgrounds.
+      </p>
+    </section>
+
+    <section id="demo">
+      <h2>Interactive Demo</h2>
+      <p>Drag the slider to compare the results. The left side is always the input image.</p>
+      
+      <!-- 示例 1 -->
+      <h3>Example 1</h3>
+      <div class="slider-container" id="slider1">
+        <div class="image-wrapper">
+          <img src="https://raw.githubusercontent.com/mingcv/DIRS-Assets/main/images/DSC05764/I.png" alt="Input Image">
+          <img src="https://raw.githubusercontent.com/mingcv/DIRS-Assets/main/images/DSC05764/T.png" class="result-image" alt="Transmission Layer">
         </div>
-        <div class="bottom">
-          <img src="https://raw.githubusercontent.com/mingcv/DIRS-Assets/main/images/DSC05764/r_enh.png" class="reflection"  alt="reflection">
+        <div class="slider-bar"></div>
+        <div class="slider-handle"></div>
+        <div class="image-label label-left">Input</div>
+        <div class="image-label label-right">Transmission Layer (Our Result)</div>
+      </div>
+      
+      <div class="slider-container" id="slider2" style="margin-top: 20px;">
+        <div class="image-wrapper">
+          <img src="https://raw.githubusercontent.com/mingcv/DIRS-Assets/main/images/DSC05764/I.png" alt="Input Image">
+          <img src="https://raw.githubusercontent.com/mingcv/DIRS-Assets/main/images/DSC05764/R_enh.png" class="result-image" alt="Reflection Layer">
         </div>
+        <div class="slider-bar"></div>
+        <div class="slider-handle"></div>
+        <div class="image-label label-left">Input</div>
+        <div class="image-label label-right">Reflection Layer (Our Result)</div>
+      </div>
+      
+      <!-- 示例 2 -->
+      <h3>Example 2</h3>
+      <div class="slider-container" id="slider3">
+        <div class="image-wrapper">
+          <img src="https://raw.githubusercontent.com/mingcv/DIRS-Assets/main/images/DSC05789/I.png" alt="Input Image">
+          <img src="https://raw.githubusercontent.com/mingcv/DIRS-Assets/main/images/DSC05789/T.png" class="result-image" alt="Transmission Layer">
+        </div>
+        <div class="slider-bar"></div>
+        <div class="slider-handle"></div>
+        <div class="image-label label-left">Input</div>
+        <div class="image-label label-right">Transmission Layer (Our Result)</div>
+      </div>
+      
+      <div class="slider-container" id="slider4" style="margin-top: 20px;">
+        <div class="image-wrapper">
+          <img src="https://raw.githubusercontent.com/mingcv/DIRS-Assets/main/images/DSC05789/I.png" alt="Input Image">
+          <img src="https://raw.githubusercontent.com/mingcv/DIRS-Assets/main/images/DSC05789/R_enh.png" class="result-image" alt="Reflection Layer">
+        </div>
+        <div class="slider-bar"></div>
+        <div class="slider-handle"></div>
+        <div class="image-label label-left">Input</div>
+        <div class="image-label label-right">Reflection Layer (Our Result)</div>
       </div>
 
-      <!-- 白线 + 手柄 -->
-      <div class="slider-bar"   id="sliderBar"></div>
-      <div class="slider-handle" id="sliderHandle"></div>
-    </div>
+    </section>
+
+    <section id="citation">
+      <h2>Citation</h2>
+      <div class="bibtex">
+        @inproceedings{mingcv2024dirs, <br>
+          title={DIRS: Single Image Reflection Separation via Deep Feature Interaction}, <br>
+          author={Mingcv and Author, Two and Author, Three}, <br>
+          booktitle={Conference on Computer Vision and Pattern Recognition (CVPR)}, <br>
+          year={2024} <br>
+        }
+      </div>
+    </section>
   </div>
 
   <script>
-    const bar        = document.getElementById('sliderBar');
-    const handle     = document.getElementById('sliderHandle');
-    const container  = document.getElementById('sliderContainer');
-    const transImg   = document.querySelector('.transmission');
-    const reflImg    = document.querySelector('.reflection');
+    /**
+     * 初始化一个滑块对比组件
+     * @param {string} containerSelector - 滑块容器的 CSS 选择器 (例如 '#slider1')
+     */
+    function initSlider(containerSelector) {
+      const container = document.querySelector(containerSelector);
+      if (!container) {
+        console.warn(`Slider container not found: ${containerSelector}`);
+        return;
+      }
 
-    let dragging = false;
+      const bar = container.querySelector('.slider-bar');
+      const handle = container.querySelector('.slider-handle');
+      const resultImg = container.querySelector('.result-image');
+      
+      let dragging = false;
 
-    /* 根据鼠标 (或触点) X 坐标更新界面 */
-    function update(x){
-      const rect = container.getBoundingClientRect();
-      const clamp = Math.max(0, Math.min(x - rect.left, rect.width));
-      const pct   = (clamp / rect.width) * 100;
+      /* 根据鼠标 (或触点) X 坐标更新界面 */
+      function update(x) {
+        const rect = container.getBoundingClientRect();
+        // 将 x 坐标限制在容器边界内
+        const position = Math.max(0, Math.min(x - rect.left, rect.width));
+        const pct = (position / rect.width) * 100;
 
-      /* 防止 100 % 时白线消失 */
-      const left = Math.min(pct, 99.8);
+        // 更新滑块和手柄的位置
+        bar.style.left = `${pct}%`;
+        handle.style.left = `${pct}%`;
+        
+        // 更新结果图像的裁剪区域
+        resultImg.style.clipPath = `inset(0 ${100 - pct}% 0 0)`;
+      }
 
-      bar.style.left    = handle.style.left = `${left}%`;
-      transImg.style.clipPath = `inset(0 ${100 - pct}% 0 0)`;
-      reflImg.style.clipPath  = `inset(0 ${100 - pct}% 0 0)`;
+      /* 事件监听器 */
+      const startDrag = (e) => {
+        dragging = true;
+        // 立即更新一次位置，方便点击时跳转
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        update(clientX);
+      };
+      
+      const stopDrag = () => {
+        dragging = false;
+      };
+
+      const onDrag = (e) => {
+        if (!dragging) return;
+        // e.preventDefault() for touchmove to prevent page scrolling
+        if (e.touches) e.preventDefault();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        update(clientX);
+      };
+
+      // 鼠标事件
+      handle.addEventListener('mousedown', startDrag);
+      // 在整个文档上监听移动和松开，以防鼠标移出滑块区域
+      document.addEventListener('mousemove', onDrag);
+      document.addEventListener('mouseup', stopDrag);
+
+      // 触摸事件
+      handle.addEventListener('touchstart', startDrag, { passive: false });
+      document.addEventListener('touchmove', onDrag, { passive: false });
+      document.addEventListener('touchend', stopDrag);
+      
+      // 容器点击事件，允许用户直接点击跳转
+      container.addEventListener('mousedown', startDrag);
+      container.addEventListener('touchstart', startDrag, { passive: false });
     }
 
-    /* 事件监听 */
-    const start   = () => dragging = true;
-    const stop    = () => dragging = false;
-    const move    = e => { if(dragging) update(e.clientX); };
-    const moveT   = e => { if(dragging){ update(e.touches[0].clientX); e.preventDefault(); } };
-
-    handle.addEventListener('mousedown', start);
-    document.addEventListener('mouseup', stop);
-    document.addEventListener('mousemove', move);
-
-    handle.addEventListener('touchstart', start);
-    document.addEventListener('touchend', stop);
-    document.addEventListener('touchmove', moveT, {passive:false});
-
-    /* 如果需要在窗口尺寸变化后保持对齐，可监听 resize */
-    window.addEventListener('resize', () => {
-      /* 重新把手柄/白线定位到 50 % */
-      const rect = container.getBoundingClientRect();
-      update(rect.left + rect.width / 2);
+    // 当文档加载完毕后，初始化所有的滑块
+    document.addEventListener('DOMContentLoaded', () => {
+      initSlider('#slider1');
+      initSlider('#slider2');
+      initSlider('#slider3');
+      initSlider('#slider4');
     });
+
   </script>
 </body>
 </html>
