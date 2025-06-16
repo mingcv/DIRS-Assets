@@ -2,81 +2,42 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Reflection Separation Viewer</title>
+  <title>Reflection Separation Viewer</title>
   <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      background: #000;
-      font-family: sans-serif;
-      user-select: none;
-    }
+    html, body{margin:0;padding:0;background:#000;font-family:sans-serif;user-select:none;}
 
-    .container {
-      max-width: 1000px;
-      margin: 0 auto;
-      position: relative;
-    }
+    .container{max-width:1000px;margin:0 auto;position:relative;}
+    .slider-container{position:relative;width:100%;}
 
-    .slider-container {
-      position: relative;
-      width: 100%;
-    }
-
-    .image-wrapper {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .top, .bottom {
-      position: relative;
-      height: 300px;
-      overflow: hidden;
-    }
-
-    .top img, .bottom img {
-      position: absolute;
-      height: 100%;
-      width: 100%;
-      object-fit: cover;
-    }
+    /* ──────────── 两层图像 ──────────── */
+    .image-wrapper{display:flex;flex-direction:column;}
+    .top,.bottom{position:relative;height:300px;overflow:hidden;}
+    .top img,.bottom img{position:absolute;width:100%;height:100%;object-fit:cover;}
 
     .top .transmission,
-    .bottom .reflection {
-      clip-path: inset(0 100% 0 0);
+    .bottom .reflection{clip-path:inset(0 50% 0 0);}   /* 50 % 初始裁切 */
+
+    /* ──────────── 垂直白线（2 px） ──────────── */
+    .slider-bar{
+      position:absolute;top:0;bottom:0;width:2px;
+      background:#fff;left:50%;transform:translateX(-1px); /* 中心对齐 */
+      z-index:10;
     }
 
-    .slider {
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      width: 2px;
-      background-color: white;
-      z-index: 10;
+    /* ──────────── 圆形拖动手柄 ──────────── */
+    .slider-handle{
+      position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+      width:34px;height:34px;border-radius:50%;
+      border:2px solid #fff;background:rgba(0,0,0,0.4);
+      cursor:ew-resize;z-index:11;display:flex;align-items:center;justify-content:center;
+    }
+    /* 手柄里的黑色竖线 */
+    .slider-handle::after{
+      content:'';width:2px;height:60%;background:#000;
     }
 
-    .slider-handle {
-      position: absolute;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      border: 2px solid white;
-      background: rgba(0,0,0,0.4);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      color: black;
-      font-weight: bold;
-      z-index: 11;
-      cursor: ew-resize;
-    }
-
-    .bottom {
-      border-top: 1px dashed white;
-      background-color: black;
-    }
+    /* ── 下方虚线分隔 ── */
+    .bottom{border-top:1px dashed #fff;background:#000;}
   </style>
 </head>
 <body>
@@ -84,67 +45,63 @@
     <div class="slider-container" id="sliderContainer">
       <div class="image-wrapper">
         <div class="top">
-          <img src="https://raw.githubusercontent.com/mingcv/DIRS-Assets/main/images/DSC05764/I.png" alt="blended image">
-          <img src="https://raw.githubusercontent.com/mingcv/DIRS-Assets/main/images/DSC05764/T.png" class="transmission" alt="transmission">
+          <img src="https://raw.githubusercontent.com/mingcv/DIRS-Assets/main/images/DSC05764/I.png"  alt="blended">
+          <img src="https://raw.githubusercontent.com/mingcv/DIRS-Assets/main/images/DSC05764/T.png"  class="transmission" alt="transmission">
         </div>
         <div class="bottom">
-          <img src="https://raw.githubusercontent.com/mingcv/DIRS-Assets/main/images/DSC05764/r_enh.png" class="reflection" alt="reflection">
+          <img src="https://raw.githubusercontent.com/mingcv/DIRS-Assets/main/images/DSC05764/r_enh.png" class="reflection"  alt="reflection">
         </div>
       </div>
 
-      <!-- White vertical bar -->
-      <div class="slider" id="sliderBar" style="left: 0%;">
-        <!-- Handle with round circle -->
-        <div class="slider-handle" id="sliderHandle">│</div>
-      </div>
+      <!-- 白线 + 手柄 -->
+      <div class="slider-bar"   id="sliderBar"></div>
+      <div class="slider-handle" id="sliderHandle"></div>
     </div>
   </div>
 
   <script>
-    const sliderBar = document.getElementById('sliderBar');
-    const sliderHandle = document.getElementById('sliderHandle');
-    const transmission = document.querySelector('.transmission');
-    const reflection = document.querySelector('.reflection');
-    const container = document.getElementById('sliderContainer');
+    const bar        = document.getElementById('sliderBar');
+    const handle     = document.getElementById('sliderHandle');
+    const container  = document.getElementById('sliderContainer');
+    const transImg   = document.querySelector('.transmission');
+    const reflImg    = document.querySelector('.reflection');
 
-    let isDragging = false;
+    let dragging = false;
 
-    const updateSlider = (x) => {
+    /* 根据鼠标 (或触点) X 坐标更新界面 */
+    function update(x){
       const rect = container.getBoundingClientRect();
-      let offsetX = Math.max(0, Math.min(x - rect.left, rect.width));
-      const percentage = (offsetX / rect.width) * 100;
+      const clamp = Math.max(0, Math.min(x - rect.left, rect.width));
+      const pct   = (clamp / rect.width) * 100;
 
-      const left = Math.min(percentage, 99.8);
-      sliderBar.style.left = `${left}%`;
-      sliderHandle.style.left = `${left}%`;
-      transmission.style.clipPath = `inset(0 ${100 - percentage}% 0 0)`;
-      reflection.style.clipPath = `inset(0 ${100 - percentage}% 0 0)`;
-    };
+      /* 防止 100 % 时白线消失 */
+      const left = Math.min(pct, 99.8);
 
-    const startDrag = () => isDragging = true;
-    const stopDrag = () => isDragging = false;
+      bar.style.left    = handle.style.left = `${left}%`;
+      transImg.style.clipPath = `inset(0 ${100 - pct}% 0 0)`;
+      reflImg.style.clipPath  = `inset(0 ${100 - pct}% 0 0)`;
+    }
 
-    const handleMouseMove = (e) => {
-      if (isDragging) {
-        updateSlider(e.clientX);
-        e.preventDefault();
-      }
-    };
+    /* 事件监听 */
+    const start   = () => dragging = true;
+    const stop    = () => dragging = false;
+    const move    = e => { if(dragging) update(e.clientX); };
+    const moveT   = e => { if(dragging){ update(e.touches[0].clientX); e.preventDefault(); } };
 
-    const handleTouchMove = (e) => {
-      if (isDragging) {
-        updateSlider(e.touches[0].clientX);
-        e.preventDefault();
-      }
-    };
+    handle.addEventListener('mousedown', start);
+    document.addEventListener('mouseup', stop);
+    document.addEventListener('mousemove', move);
 
-    sliderHandle.addEventListener('mousedown', startDrag);
-    document.addEventListener('mouseup', stopDrag);
-    document.addEventListener('mousemove', handleMouseMove);
+    handle.addEventListener('touchstart', start);
+    document.addEventListener('touchend', stop);
+    document.addEventListener('touchmove', moveT, {passive:false});
 
-    sliderHandle.addEventListener('touchstart', startDrag);
-    document.addEventListener('touchend', stopDrag);
-    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    /* 如果需要在窗口尺寸变化后保持对齐，可监听 resize */
+    window.addEventListener('resize', () => {
+      /* 重新把手柄/白线定位到 50 % */
+      const rect = container.getBoundingClientRect();
+      update(rect.left + rect.width / 2);
+    });
   </script>
 </body>
 </html>
