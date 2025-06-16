@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Reflection Separation Viewer</title>
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+      font-family: sans-serif;
+    }
+    .container {
+      position: relative;
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .slider-container {
+      position: relative;
+      width: 100%;
+      overflow: hidden;
+    }
+    .image-wrapper {
+      display: flex;
+      flex-direction: column;
+    }
+    .top, .bottom {
+      position: relative;
+      height: 300px;
+      overflow: hidden;
+    }
+    .top img, .bottom img {
+      position: absolute;
+      height: 100%;
+      width: 100%;
+      object-fit: cover;
+    }
+    .top .transmission,
+    .bottom .reflection {
+      clip-path: inset(0 100% 0 0);
+      transition: clip-path 0.1s;
+    }
+    .slider {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: red;
+      cursor: ew-resize;
+    }
+    .bottom {
+      border-top: 1px dashed white;
+      background-color: black;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="slider-container" id="sliderContainer">
+      <div class="image-wrapper">
+        <div class="top">
+          <img src="https://raw.githubusercontent.com/mingcv/DIRS-Assets/main/images/DSC05764/I.png" alt="blended image">
+          <img src="https://raw.githubusercontent.com/mingcv/DIRS-Assets/main/images/DSC05764/T.png" class="transmission" alt="transmission">
+        </div>
+        <div class="bottom">
+          <img src="https://raw.githubusercontent.com/mingcv/DIRS-Assets/main/images/DSC05764/r_enh.png" class="reflection" alt="reflection">
+        </div>
+      </div>
+      <div class="slider" id="slider" style="left: 0;"></div>
+    </div>
+  </div>
+
+  <script>
+    const slider = document.getElementById('slider');
+    const transmission = document.querySelector('.transmission');
+    const reflection = document.querySelector('.reflection');
+    const sliderContainer = document.getElementById('sliderContainer');
+
+    let isDragging = false;
+
+    const updateClip = (x) => {
+      const rect = sliderContainer.getBoundingClientRect();
+      const offsetX = Math.max(0, Math.min(x - rect.left, rect.width));
+      const percentage = (offsetX / rect.width) * 100;
+      slider.style.left = `${percentage}%`;
+      transmission.style.clipPath = `inset(0 ${100 - percentage}% 0 0)`;
+      reflection.style.clipPath = `inset(0 ${100 - percentage}% 0 0)`;
+    };
+
+    slider.addEventListener('mousedown', () => isDragging = true);
+    document.addEventListener('mouseup', () => isDragging = false);
+    document.addEventListener('mousemove', (e) => {
+      if (isDragging) {
+        updateClip(e.clientX);
+      }
+    });
+  </script>
+</body>
+</html>
