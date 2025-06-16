@@ -13,16 +13,14 @@
     }
 
     .container {
-      position: relative;
-      width: 100%;
-      max-width: 800px;
+      max-width: 1000px;
       margin: 0 auto;
+      position: relative;
     }
 
     .slider-container {
       position: relative;
       width: 100%;
-      overflow: hidden;
     }
 
     .image-wrapper {
@@ -46,35 +44,33 @@
     .top .transmission,
     .bottom .reflection {
       clip-path: inset(0 100% 0 0);
-      transition: clip-path 0.1s;
     }
 
     .slider {
       position: absolute;
       top: 0;
       bottom: 0;
-      width: 30px;
-      margin-left: -15px;
+      width: 2px;
+      background-color: white;
       z-index: 10;
-      cursor: ew-resize;
-      display: flex;
-      justify-content: center;
-      align-items: center;
     }
 
-    .slider-button {
+    .slider-handle {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
       width: 30px;
       height: 30px;
       border-radius: 50%;
-      background-color: black;
       border: 2px solid white;
-      color: white;
-      font-size: 14px;
+      background: rgba(0,0,0,0.4);
       display: flex;
       justify-content: center;
       align-items: center;
-      box-shadow: 0 0 5px rgba(0,0,0,0.5);
+      color: black;
+      font-weight: bold;
       z-index: 11;
+      cursor: ew-resize;
     }
 
     .bottom {
@@ -95,47 +91,60 @@
           <img src="https://raw.githubusercontent.com/mingcv/DIRS-Assets/main/images/DSC05764/r_enh.png" class="reflection" alt="reflection">
         </div>
       </div>
-      <div class="slider" id="slider" style="left: 0%;">
-        <div class="slider-button">◀▶</div>
+
+      <!-- White vertical bar -->
+      <div class="slider" id="sliderBar" style="left: 0%;">
+        <!-- Handle with round circle -->
+        <div class="slider-handle" id="sliderHandle">│</div>
       </div>
     </div>
   </div>
 
   <script>
-    const slider = document.getElementById('slider');
+    const sliderBar = document.getElementById('sliderBar');
+    const sliderHandle = document.getElementById('sliderHandle');
     const transmission = document.querySelector('.transmission');
     const reflection = document.querySelector('.reflection');
-    const sliderContainer = document.getElementById('sliderContainer');
+    const container = document.getElementById('sliderContainer');
 
     let isDragging = false;
 
-    const updateClip = (x) => {
-      const rect = sliderContainer.getBoundingClientRect();
+    const updateSlider = (x) => {
+      const rect = container.getBoundingClientRect();
       let offsetX = Math.max(0, Math.min(x - rect.left, rect.width));
       const percentage = (offsetX / rect.width) * 100;
 
-      const adjustedLeft = Math.min(percentage, 99.9); 
-      slider.style.left = `${adjustedLeft}%`;
-
+      const left = Math.min(percentage, 99.8);
+      sliderBar.style.left = `${left}%`;
+      sliderHandle.style.left = `${left}%`;
       transmission.style.clipPath = `inset(0 ${100 - percentage}% 0 0)`;
       reflection.style.clipPath = `inset(0 ${100 - percentage}% 0 0)`;
     };
 
-    slider.addEventListener('mousedown', () => isDragging = true);
-    document.addEventListener('mouseup', () => isDragging = false);
-    document.addEventListener('mousemove', (e) => {
-      if (isDragging) updateClip(e.clientX);
-    });
+    const startDrag = () => isDragging = true;
+    const stopDrag = () => isDragging = false;
 
-    // Touch events for mobile support
-    slider.addEventListener('touchstart', () => isDragging = true);
-    document.addEventListener('touchend', () => isDragging = false);
-    document.addEventListener('touchmove', (e) => {
+    const handleMouseMove = (e) => {
       if (isDragging) {
-        updateClip(e.touches[0].clientX);
+        updateSlider(e.clientX);
         e.preventDefault();
       }
-    }, { passive: false });
+    };
+
+    const handleTouchMove = (e) => {
+      if (isDragging) {
+        updateSlider(e.touches[0].clientX);
+        e.preventDefault();
+      }
+    };
+
+    sliderHandle.addEventListener('mousedown', startDrag);
+    document.addEventListener('mouseup', stopDrag);
+    document.addEventListener('mousemove', handleMouseMove);
+
+    sliderHandle.addEventListener('touchstart', startDrag);
+    document.addEventListener('touchend', stopDrag);
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
   </script>
 </body>
 </html>
