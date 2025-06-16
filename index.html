@@ -9,7 +9,7 @@
       padding: 0;
       background: #000;
       font-family: sans-serif;
-      user-select: none; /* 禁止选中内容 */
+      user-select: none;
     }
 
     .container {
@@ -53,21 +53,28 @@
       position: absolute;
       top: 0;
       bottom: 0;
-      width: 8px;
-      margin-left: -4px; /* 居中对齐 */
-      background: white;
-      cursor: ew-resize;
+      width: 30px;
+      margin-left: -15px;
       z-index: 10;
+      cursor: ew-resize;
       display: flex;
       justify-content: center;
       align-items: center;
     }
 
-    .slider::before {
-      content: '';
-      width: 2px;
-      height: 100%;
-      background: black;
+    .slider-button {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background-color: black;
+      border: 2px solid white;
+      color: white;
+      font-size: 14px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 0 5px rgba(0,0,0,0.5);
+      z-index: 11;
     }
 
     .bottom {
@@ -88,7 +95,9 @@
           <img src="https://raw.githubusercontent.com/mingcv/DIRS-Assets/main/images/DSC05764/r_enh.png" class="reflection" alt="reflection">
         </div>
       </div>
-      <div class="slider" id="slider" style="left: 0;"></div>
+      <div class="slider" id="slider" style="left: 0%;">
+        <div class="slider-button">◀▶</div>
+      </div>
     </div>
   </div>
 
@@ -105,7 +114,6 @@
       let offsetX = Math.max(0, Math.min(x - rect.left, rect.width));
       const percentage = (offsetX / rect.width) * 100;
 
-      // 修复最右侧滑块消失的问题
       const adjustedLeft = Math.min(percentage, 99.9); 
       slider.style.left = `${adjustedLeft}%`;
 
@@ -119,9 +127,14 @@
       if (isDragging) updateClip(e.clientX);
     });
 
-    // 防止滑动时页面滚动或选中
-    document.addEventListener('touchmove', e => {
-      if (isDragging) e.preventDefault();
+    // Touch events for mobile support
+    slider.addEventListener('touchstart', () => isDragging = true);
+    document.addEventListener('touchend', () => isDragging = false);
+    document.addEventListener('touchmove', (e) => {
+      if (isDragging) {
+        updateClip(e.touches[0].clientX);
+        e.preventDefault();
+      }
     }, { passive: false });
   </script>
 </body>
