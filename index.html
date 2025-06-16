@@ -4,50 +4,72 @@
   <meta charset="UTF-8">
   <title>Reflection Separation Viewer</title>
   <style>
-    body {
+    html, body {
       margin: 0;
+      padding: 0;
       background: #000;
       font-family: sans-serif;
+      user-select: none; /* 禁止选中内容 */
     }
+
     .container {
       position: relative;
       width: 100%;
       max-width: 800px;
       margin: 0 auto;
     }
+
     .slider-container {
       position: relative;
       width: 100%;
       overflow: hidden;
     }
+
     .image-wrapper {
       display: flex;
       flex-direction: column;
     }
+
     .top, .bottom {
       position: relative;
       height: 300px;
       overflow: hidden;
     }
+
     .top img, .bottom img {
       position: absolute;
       height: 100%;
       width: 100%;
       object-fit: cover;
     }
+
     .top .transmission,
     .bottom .reflection {
       clip-path: inset(0 100% 0 0);
       transition: clip-path 0.1s;
     }
+
     .slider {
       position: absolute;
       top: 0;
       bottom: 0;
-      width: 4px;
-      background: red;
+      width: 8px;
+      margin-left: -4px; /* 居中对齐 */
+      background: white;
       cursor: ew-resize;
+      z-index: 10;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
+
+    .slider::before {
+      content: '';
+      width: 2px;
+      height: 100%;
+      background: black;
+    }
+
     .bottom {
       border-top: 1px dashed white;
       background-color: black;
@@ -80,9 +102,13 @@
 
     const updateClip = (x) => {
       const rect = sliderContainer.getBoundingClientRect();
-      const offsetX = Math.max(0, Math.min(x - rect.left, rect.width));
+      let offsetX = Math.max(0, Math.min(x - rect.left, rect.width));
       const percentage = (offsetX / rect.width) * 100;
-      slider.style.left = `${percentage}%`;
+
+      // 修复最右侧滑块消失的问题
+      const adjustedLeft = Math.min(percentage, 99.9); 
+      slider.style.left = `${adjustedLeft}%`;
+
       transmission.style.clipPath = `inset(0 ${100 - percentage}% 0 0)`;
       reflection.style.clipPath = `inset(0 ${100 - percentage}% 0 0)`;
     };
@@ -90,10 +116,13 @@
     slider.addEventListener('mousedown', () => isDragging = true);
     document.addEventListener('mouseup', () => isDragging = false);
     document.addEventListener('mousemove', (e) => {
-      if (isDragging) {
-        updateClip(e.clientX);
-      }
+      if (isDragging) updateClip(e.clientX);
     });
+
+    // 防止滑动时页面滚动或选中
+    document.addEventListener('touchmove', e => {
+      if (isDragging) e.preventDefault();
+    }, { passive: false });
   </script>
 </body>
 </html>
